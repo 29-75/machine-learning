@@ -1,9 +1,12 @@
+import math
 import os
 import pygame
 from math import sin, radians, degrees, copysign
 from pygame.math import Vector2
 
-
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
 class Car:
     def __init__(self, x, y, angle=0.0, length=4, max_steering=30, max_acceleration=5.0):
         self.position = Vector2(x, y)
@@ -85,9 +88,9 @@ class Game():
             self.screen.fill((0, 0, 0))
 
             if len(self.mousepos1) > 1:
-                pygame.draw.lines(self.screen, (255, 0, 0), False, self.mousepos1)
+                pygame.draw.lines(self.screen, RED, False, self.mousepos1)
             if len(self.mousepos2) > 1:
-                pygame.draw.lines(self.screen, (0, 255, 0), False, self.mousepos2)
+                pygame.draw.lines(self.screen, GREEN, False, self.mousepos2)
 
             pygame.display.update()
             clock.tick(30)
@@ -110,7 +113,9 @@ class Game():
         #asset_path = os.path.join(current_dir, "car.png")
         #asset_image = pygame.image.load(asset_path)
 
+        breaker = False      
         while not self.exit:
+
             dt = self.clock.get_time() / 500
 
             # Event queue
@@ -161,15 +166,37 @@ class Game():
 
             # Drawing
             self.screen.fill((0, 0, 0))
-            pygame.draw.lines(self.screen, (255, 0, 0), False, self.mousepos1)
-            pygame.draw.lines(self.screen, (0, 255, 0), False, self.mousepos2)
+            pygame.draw.lines(self.screen, GREEN, False, self.mousepos1)
+            pygame.draw.lines(self.screen, RED, False, self.mousepos2)
             rotated = pygame.transform.rotate(car_image, car.angle)
             rect = rotated.get_rect()
             self.screen.blit(rotated, car.position * ppu - (rect.width / 2, rect.height / 2))
+            
+            #################### 그림 mousepos 랑 car랑 충돌 하는거 감지해야됨
+            # 자동차에서 나가는 직선 하나를 그리고, 선과 poly 의 접점을 구해서 그 접점까지의 거리로 판단한다.
+            
+            c = pygame.Rect(car.position.x*ppu,car.position.y*ppu,10,10)
+            for i in range(len(self.mousepos1)):
+                a = pygame.Rect(self.mousepos1[i][0],self.mousepos1[i][1],2,2)
+                pygame.draw.rect(self.screen, (0, 255, 0), a)
 
-            # asset
-            #self.screen.blit(asset_image, (30*ppu,18*ppu))
+                if a.colliderect(c) :
+                    print("colliderect")
+                    breaker = True
+                    break
+            for i in range(len(self.mousepos2)):
+                b = pygame.Rect(self.mousepos2[i][0],self.mousepos2[i][1],2,2)
 
+                pygame.draw.rect(self.screen, (0, 255, 0), b)
+
+                if b.colliderect(c) :
+                    print("colliderect")
+                    breaker = True
+                    break
+            if breaker == True : 
+                car.reset(10,10)
+                breaker = False
+                #break
             # font 
             WHITE = (255,255,255)
             fontObj = pygame.font.Font('HoonWhitecatR.ttf', 20)    
