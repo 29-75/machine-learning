@@ -8,7 +8,7 @@ RED = (255, 0, 0)
 
 if __name__ == "__main__":
     # Declare game
-    race_game = game.Game(1024, 768, auto=False)
+    race_game = game.Game(auto=True)
 
     # Run car in builded map
     race_game.run_car()
