@@ -1,8 +1,6 @@
-import os
 import pygame
+import car
 import math
-from math import sin, radians, degrees, copysign
-from pygame.math import Vector2
 
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
@@ -20,41 +18,7 @@ TRACK_IMAGE_PATH = "resources/images/track2.png"
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 800
 
-# CAR_WIDTH = 60
-# CAR_HEIGHT = 30
-
-PPU = 32 # pixel per unit?
-
-class Car:
-    # length is car length
-    # max_steering is 30 degree 
-    # max_acceleration is 5 meters per second
-    def __init__(self, x, y, angle=0.0, length=4, max_steering=100, max_acceleration=5.0):
-        self.position = Vector2(x, y)
-        self.velocity = Vector2(0.0, 0.0)
-        self.angle = angle
-        self.length = length
-        self.max_acceleration = max_acceleration
-        self.max_steering = max_steering
-        self.max_velocity = 20
-        self.brake_deceleration = 10
-        self.free_deceleration = 2
-
-        self.acceleration = 0.0
-        self.steering = 0.0
-
-    def update(self, dt):
-        self.velocity += (self.acceleration * dt, 0)
-        self.velocity.x = max(-self.max_velocity, min(self.velocity.x, self.max_velocity))
-
-        if self.steering:
-            turning_radius = self.length / sin(radians(self.steering))
-            angular_velocity = self.velocity.x / turning_radius
-        else:
-            angular_velocity = 0
-
-        self.position += self.velocity.rotate(-self.angle) * dt
-        self.angle += degrees(angular_velocity) * dt
+PPU = 32 # pixel per unit
 
 class Game:
     def __init__(self):
@@ -71,6 +35,9 @@ class Game:
         self.track_image = pygame.image.load(TRACK_IMAGE_PATH)
         self.car_image = pygame.image.load(IMAGE_PATH)
 
+        # create car
+        self.car = car.Car(4, 8)
+
         # create a mask for each of them.
         self.track_mask = pygame.mask.from_surface(self.track_image, 50)
         self.car_mask = pygame.mask.from_surface(self.car_image, 50)
@@ -84,8 +51,6 @@ class Game:
         self.beam_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 
     def run(self):
-        car = Car(4, 8)
-
         while not self.exit:
             dt = self.clock.get_time() / 1000
 
@@ -101,45 +66,45 @@ class Game:
 
                 # calculate car acceleration
                 if pressed[pygame.K_UP]:
-                    if car.velocity.x < 0:
-                        car.acceleration = car.brake_deceleration
+                    if self.car.velocity.x < 0:
+                        self.car.acceleration = self.car.brake_deceleration
                     else:
-                        car.acceleration += 1 * dt
+                        self.car.acceleration += 1 * dt
                 elif pressed[pygame.K_DOWN]:
-                    if car.velocity.x > 0:
-                        car.acceleration = -car.brake_deceleration
+                    if self.car.velocity.x > 0:
+                        self.car.acceleration = -self.car.brake_deceleration
                     else:
-                        car.acceleration -= 1 * dt
+                        self.car.acceleration -= 1 * dt
                 elif pressed[pygame.K_SPACE]:
-                    if abs(car.velocity.x) > dt * car.brake_deceleration:
-                        car.acceleration = -copysign(car.brake_deceleration, car.velocity.x)
+                    if abs(self.car.velocity.x) > dt * self.car.brake_deceleration:
+                        self.car.acceleration = -math.copysign(self.car.brake_deceleration, self.car.velocity.x)
                     else:
-                        car.acceleration = -car.velocity.x / dt
+                        self.car.acceleration = -self.car.velocity.x / dt
                 else:
-                    if abs(car.velocity.x) > dt * car.free_deceleration:
-                        car.acceleration = -copysign(car.free_deceleration, car.velocity.x)
+                    if abs(self.car.velocity.x) > dt * self.car.free_deceleration:
+                        self.car.acceleration = -math.copysign(self.car.free_deceleration, self.car.velocity.x)
                     else:
                         if dt != 0:
-                            car.acceleration = -car.velocity.x / dt
-                car.acceleration = max(-car.max_acceleration, min(car.acceleration, car.max_acceleration))
+                            self.car.acceleration = -self.car.velocity.x / dt
+                self.car.acceleration = max(-self.car.max_acceleration, min(self.car.acceleration, self.car.max_acceleration))
 
                 # calculate car steering
                 if pressed[pygame.K_RIGHT]:
                     # car.steering -= 30 * dt
-                    car.steering -= 100 * dt
+                    self.car.steering -= 100 * dt
                 elif pressed[pygame.K_LEFT]:
-                    car.steering += 100 * dt
+                    self.car.steering += 100 * dt
                 else:
-                    car.steering = 0
-                car.steering = max(-car.max_steering, min(car.steering, car.max_steering))
+                    self.car.steering = 0
+                self.car.steering = max(-self.car.max_steering, min(self.car.steering, self.car.max_steering))
 
                 # update car position & angle
-                car.update(dt)
+                self.car.update(dt)
 
             # get new position from rotated rectangular object
-            rotated = pygame.transform.rotate(self.car_image, car.angle)
+            rotated = pygame.transform.rotate(self.car_image, self.car.angle)
             rect = rotated.get_rect()
-            carNewPosition = car.position * PPU - (rect.width / 2, rect.height / 2)
+            carNewPosition = self.car.position * PPU - (rect.width / 2, rect.height / 2)
 
             # reset screen
             self.screen.fill(BACKGROUND_COLOR)
@@ -153,7 +118,7 @@ class Game:
             #     self.draw_beam(angle, rotatedRect.center)
             beam_angle_arr = [-90, -45, 0, 45, 90]
             for angle in beam_angle_arr:
-                beam_angle = angle - car.angle
+                beam_angle = angle - self.car.angle
                 self.draw_beam(beam_angle, rotatedRect.center)
 
             # check crash, if crash draw yellow rectangular ! and don't move!
@@ -163,10 +128,10 @@ class Game:
                 self.draw_crash(rotatedRect, carNewPosition)
 
             # print car infomation
-            self.print_text("car position: " + str(car.position), 10, 10)
+            self.print_text("car position: " + str(self.car.position), 10, 10)
             self.print_text("car new position: " + str(carNewPosition), 10, 40)
-            self.print_text("acceleration: " + str(car.acceleration), 10, 70)
-            self.print_text("velocity: " + str(car.velocity), 10, 100)
+            self.print_text("acceleration: " + str(self.car.acceleration), 10, 70)
+            self.print_text("velocity: " + str(self.car.velocity), 10, 100)
 
             pygame.display.flip()
             self.clock.tick(self.ticks)
@@ -224,8 +189,3 @@ class Game:
         printTextRect = printTextObj.get_rect();                     
         printTextRect.topleft = (x, y)                               
         self.screen.blit(printTextObj, printTextRect)    
-
-
-if __name__ == '__main__':
-    game = Game()
-    game.run()
