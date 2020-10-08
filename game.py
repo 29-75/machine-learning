@@ -31,6 +31,9 @@ car_mask = pygame.mask.from_surface(car_image)
 track_mask = pygame.mask.from_surface(track_image)
 
 car_size = car_image.get_size()
+line1 = 0
+line2 = 0
+line3 = 0
 class Car:
     def __init__(self, angle, length=4, max_steering=30, max_acceleration=5.0):
         self.position = Vector2(start_x, start_y)
@@ -83,50 +86,6 @@ class Game():
         self.clock = pygame.time.Clock()
         self.ticks = 30
         self.exit = False
-        self.mousepos1=[]
-        self.mousepos2=[]
-
-    def drawmap(self):
-        clock = pygame.time.Clock()
-
-        mousedown = False
-        #mousepos1 = []
-        #mousepos2 = []
-        nextTrack = False
-        endFlag = 0
-        while True:
-            event = pygame.event.poll()
-            if event.type == pygame.QUIT:
-                break
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mousedown = True
-            elif event.type == pygame.MOUSEBUTTONUP:
-                endFlag += 1
-                mousedown = False
-                nextTrack = True
-        #        mousepos.clear()
-            elif event.type == pygame.MOUSEMOTION:
-                if mousedown:
-                    if nextTrack == False:
-                        self.mousepos1.append(event.pos)
-                    else: self.mousepos2.append(event.pos)
-
-            self.screen.fill((0, 0, 0))
-
-            if len(self.mousepos1) > 1:
-                pygame.draw.lines(self.screen, RED, False, self.mousepos1)
-            if len(self.mousepos2) > 1:
-                pygame.draw.lines(self.screen, GREEN, False, self.mousepos2)
-
-            pygame.display.update()
-            clock.tick(30)
-
-            # 2번째 트랙 그리면 while 문 종료
-            if nextTrack == True and endFlag == 2 :
-                break;
-
-        # while문 빠져나와서 그림 저장하고 pygame 종료
-        #pygame.image.save(self.screen, "test.jpg")
 
     def run(self):
         car = Car(0)
@@ -213,8 +172,15 @@ class Game():
             car_pos = car.position * ppu - (rect.width / 2, rect.height / 2)
 
             # for angle in range(0, 359, 30):
-            for angle in range(0, 359, 45):
-                self.draw_beam(angle, car_pos + (rect.width / 2, rect.height / 2))
+            index = 0
+            for angle in range(-45, 46, 45):
+                if angle == -45:
+                    line1 = self.draw_beam(angle - car.angle , car_pos + (rect.width / 2, rect.height / 2))
+                elif angle == 0:
+                    line2 = self.draw_beam(angle - car.angle , car_pos + (rect.width / 2, rect.height / 2))
+                elif angle == 45:
+                    line3 = self.draw_beam(angle - car.angle , car_pos + (rect.width / 2, rect.height / 2))
+                
 
             self.screen.blit(rotated, car_pos)
             
@@ -283,7 +249,30 @@ class Game():
             carVelocityRect = carVelocityTextObj.get_rect();                     
             carVelocityRect.topleft = (3, 54)                                    
             self.screen.blit(carVelocityTextObj, carVelocityRect)
-            
+            # print angle
+            carAngleText = "car Angle: " + str(car.angle)
+            carAngleTextObj = fontObj.render(carAngleText, True, WHITE) 
+            carAngleRect = carAngleTextObj.get_rect();                     
+            carAngleRect.topleft = (3, 71)                                    
+            self.screen.blit(carAngleTextObj, carAngleRect)
+            # print line1
+            carLine1Text = "car Line1: " + str(line1)
+            carLine1TextObj = fontObj.render(carLine1Text, True, WHITE) 
+            carLine1Rect = carLine1TextObj.get_rect();                     
+            carLine1Rect.topleft = (3, 88)                                    
+            self.screen.blit(carLine1TextObj, carLine1Rect)
+            # print line2
+            carLine2Text = "car Line1: " + str(line2)
+            carLine2TextObj = fontObj.render(carLine2Text, True, WHITE) 
+            carLine2Rect = carLine2TextObj.get_rect();                     
+            carLine2Rect.topleft = (3, 105)                                    
+            self.screen.blit(carLine2TextObj, carLine2Rect)
+            # print line3
+            carLine3Text = "car Line3: " + str(line3)
+            carLine3TextObj = fontObj.render(carLine3Text, True, WHITE) 
+            carLine3Rect = carLine3TextObj.get_rect();                     
+            carLine3Rect.topleft = (3, 122)                                    
+            self.screen.blit(carLine3TextObj, carLine3Rect)            
             pygame.display.flip()
             self.clock.tick(self.ticks)
             if breaker:
@@ -291,7 +280,7 @@ class Game():
                 car.reset(0)
         pygame.quit()
 
-    def draw_beam(self, angle, pos):
+    def draw_beam(self, angle, pos)->int:
         c = math.cos(math.radians(angle))
         s = math.sin(math.radians(angle))
 
@@ -307,6 +296,7 @@ class Game():
 
         # draw a single beam to the beam surface based on computed final point
         pygame.draw.line(beam_surface, BLUE, (0, 0), (x_dest, y_dest))
+        # pygame.draw.line(beam_surface, BLUE, pos, (x_dest, y_dest))
         beam_mask = pygame.mask.from_surface(beam_surface)
 
         # find overlap between "global mask" and current beam mask
@@ -319,9 +309,11 @@ class Game():
             hx = width-1 - hit[0] if flip_x else hit[0]
             hy = height-1 - hit[1] if flip_y else hit[1]
             hit_pos = (hx, hy)
-
+            line = math.hypot(pos[0]-hit_pos[0],pos[1]-hit_pos[1])
+            
             pygame.draw.line(self.screen, BLUE, pos, hit_pos)
             pygame.draw.circle(self.screen, GREEN, hit_pos, 3)
+            return line
 
     def crash(self, rotated, car_pos):
         iscrash = track_mask.overlap(car_mask, (int(car_pos.x), int(car_pos.y)))
